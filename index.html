@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מערכת שיבוץ מנחות לבתי ספר</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#1d2433; --muted:#6b7688; --line:#e2e7ef;
+  --accent:#2f6fed; --accent-soft:#e8f0ff;
+  --ok:#1f9d55; --ok-soft:#dcf5e6; --warn:#d97706; --warn-soft:#fef3c7;
+  --bad:#dc2626; --bad-soft:#fee2e2; --purple:#7c3aed; --purple-soft:#ede9fe;
+  --shadow:0 1px 3px rgba(20,30,50,.08),0 6px 20px rgba(20,30,50,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Segoe UI",Arial,"Noto Sans Hebrew",sans-serif;font-size:15px;line-height:1.5}
+header{background:linear-gradient(135deg,#1e3a8a,#2f6fed);color:#fff;padding:18px 24px}
+header h1{margin:0;font-size:21px;font-weight:600}
+header p{margin:4px 0 0;opacity:.85;font-size:13px}
+.wrap{max-width:1280px;margin:0 auto;padding:16px 20px 60px}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}
+nav.tabs button{background:#fff;border:1px solid var(--line);padding:9px 16px;border-radius:10px;
+  cursor:pointer;font-size:14px;font-family:inherit;color:var(--muted)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;
+  margin-bottom:16px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 4px;font-size:17px}
+.card .sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:right;vertical-align:middle}
+th{background:#f7f9fc;font-weight:600;font-size:13px;color:#41506b;white-space:nowrap}
+tbody tr:hover{background:#fafbfe}
+input,select,textarea{font-family:inherit;font-size:14px;border:1px solid transparent;background:transparent;
+  padding:4px 6px;border-radius:6px;width:100%;color:inherit}
+td input:focus,td select:focus{outline:none;border-color:var(--accent);background:#fff}
+.field input,.field select{border:1px solid var(--line);background:#fff}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 16px;
+  cursor:pointer;font-family:inherit;font-size:14px;font-weight:600}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+.btn.grey{background:#eef1f6;color:#41506b}
+.btn.sm{padding:5px 10px;font-size:13px;font-weight:500}
+.btn.danger{background:#fff;color:var(--bad);border:1px solid #f3c2c2;padding:2px 8px;font-size:13px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.field{display:flex;flex-direction:column;gap:4px;min-width:150px}
+.field label{font-size:12px;color:var(--muted);font-weight:600}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.pill.ok{background:var(--ok-soft);color:#146c3a}
+.pill.warn{background:var(--warn-soft);color:#92400e}
+.pill.bad{background:var(--bad-soft);color:#991b1b}
+.pill.info{background:var(--accent-soft);color:#1e40af}
+.pill.pur{background:var(--purple-soft);color:#5b21b6}
+.sched td.slot{padding:5px 7px;font-size:13px;min-width:120px}
+.sched td.assigned{background:var(--ok-soft)}
+.sched td.assigned.far{background:var(--warn-soft)}
+.sched td.off{background:#f1f3f7;color:#b6bdc9;text-align:center}
+.sched td.free{background:#fff}
+.sched .mins{display:block;font-size:11px;color:#4a5568;opacity:.8}
+.sched th.gname{background:#fff8e6;font-weight:600}
+.note{background:#fbfcfe;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;
+  font-size:13px;color:var(--muted)}
+.opt-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.opt-tabs button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 14px;
+  cursor:pointer;font-family:inherit;font-size:13px}
+.opt-tabs button.active{border-color:var(--purple);background:var(--purple-soft);color:#5b21b6;font-weight:600}
+.kpi{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.kpi div{background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:120px}
+.kpi b{display:block;font-size:19px}
+.kpi span{font-size:12px;color:var(--muted)}
+details summary{cursor:pointer;font-weight:600;font-size:14px;margin-bottom:8px}
+.toast{position:fixed;bottom:18px;left:18px;background:#1d2433;color:#fff;padding:11px 18px;
+  border-radius:10px;font-size:14px;box-shadow:var(--shadow);z-index:99;display:none;max-width:60vw}
+.hidden{display:none !important}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:13px;height:13px;border-radius:3px;margin-left:5px;vertical-align:-2px}
+textarea.paste{border:1px solid var(--line);background:#fff;min-height:110px;font-size:13px;
+  font-family:Consolas,monospace;direction:ltr;text-align:left}
+@media print{
+  header,nav.tabs,.noprint{display:none!important}
+  .card{box-shadow:none;break-inside:avoid}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>מערכת שיבוץ מנחות לבתי ספר</h1>
+  <p>בונה אפשרויות ללוח שבועי לפי ימי הזמינות של המנחה, ימי הזמינות של בית הספר, ומרחק נסיעה מהבית</p>
+</header>
+
+<div class="wrap">
+<nav class="tabs">
+  <button data-tab="data" class="active">1. נתונים</button>
+  <button data-tab="settings">2. הגדרות ונסיעות</button>
+  <button data-tab="run">3. שיבוץ</button>
+  <button data-tab="help">עזרה</button>
+</nav>
+
+<!-- ============ DATA ============ -->
+<section id="tab-data">
+  <div class="card">
+    <h2>מנחות</h2>
+    <div class="sub">ימי זמינות: אפשר לכתוב <code>א-ה</code>, <code>א,ב,ד</code>, או <code>ראשון ושלישי</code>. אדום = לא זמין, ירוק = זמין.</div>
+    <table id="tblGuides">
+      <thead><tr>
+        <th style="width:22%">שם המנחה</th><th style="width:26%">כתובת מגורים</th>
+        <th style="width:20%">ימי זמינות</th><th style="width:10%">מקס' ימים בשבוע</th>
+        <th style="width:16%">ימים שזוהו</th><th style="width:6%"></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="row" style="margin-top:10px">
+      <button class="btn sm ghost" onclick="addGuide()">+ הוסף מנחה</button>
+      <button class="btn sm grey" onclick="openPaste('guides')">הדבק מאקסל</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>בתי ספר</h2>
+    <div class="sub">ימי זמינות = הימים שבהם בית הספר מוכן לקבל מנחה. "ביקורים בשבוע" בדרך כלל 1.</div>
+    <table id="tblSchools">
+      <thead><tr>
+        <th style="width:22%">שם בית הספר</th><th style="width:24%">כתובת</th>
+        <th style="width:14%">ימי זמינות</th><th style="width:12%">שעות (הגעה-סיום)</th>
+        <th style="width:8%">ביקורים</th><th style="width:7%">עדיפות</th><th style="width:7%">ימים</th><th style="width:6%"></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="row" style="margin-top:10px">
+      <button class="btn sm ghost" onclick="addSchool()">+ הוסף בית ספר</button>
+      <button class="btn sm grey" onclick="openPaste('schools')">הדבק מאקסל</button>
+    </div>
+  </div>
+
+  <div class="card noprint">
+    <h2>קבצים</h2>
+    <div class="sub">כל הנתונים נשמרים בקובץ אצלך – לא נשלחים לשום מקום.</div>
+    <div class="row">
+      <button class="btn sm ghost" onclick="saveJSON()">שמור קובץ נתונים (JSON)</button>
+      <label class="btn sm grey" style="display:inline-block">טען קובץ JSON<input type="file" accept=".json" onchange="loadJSON(this)" hidden></label>
+      <label class="btn sm grey" style="display:inline-block">ייבא מאקסל (.xlsx)<input type="file" accept=".xlsx,.xls,.csv" onchange="importXlsx(this)" hidden></label>
+      <button class="btn sm grey" onclick="loadDemo()">טען נתוני דוגמה</button>
+      <button class="btn sm danger" onclick="clearAll()">נקה הכל</button>
+    </div>
+    <div id="pasteBox" class="hidden" style="margin-top:14px">
+      <div class="note" style="margin-bottom:8px">העתק מהאקסל את השורות (בלי שורת הכותרת) והדבק כאן.
+        <span id="pasteHint"></span></div>
+      <textarea class="paste" id="pasteArea"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn sm" onclick="applyPaste()">הוסף לטבלה</button>
+        <button class="btn sm grey" onclick="document.getElementById('pasteBox').classList.add('hidden')">ביטול</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="tab-settings" class="hidden">
+  <div class="card">
+    <h2>כללי השיבוץ</h2>
+    <div class="grid3">
+      <div class="field"><label>מקסימום זמן נסיעה לכיוון אחד (דקות)</label><input type="number" id="setMaxMin" value="40"></div>
+      <div class="field"><label>מקסימום בתי ספר ליום למנחה</label><input type="number" id="setPerDay" value="1" min="1" max="3"></div>
+      <div class="field"><label>כמה אופציות לייצר</label><input type="number" id="setOptions" value="3" min="1" max="6"></div>
+    </div>
+    <div class="grid3" style="margin-top:12px">
+      <div class="field"><label>משקל: קיצור נסיעות</label>
+        <select id="wTravel"><option value="0.5">נמוך</option><option value="1" selected>רגיל</option><option value="2">גבוה</option></select></div>
+      <div class="field"><label>משקל: איזון עומס בין מנחות</label>
+        <select id="wBalance"><option value="0">כבוי</option><option value="0.5">נמוך</option><option value="1" selected>רגיל</option><option value="2">גבוה</option></select></div>
+      <div class="field"><label>משקל: רצף גיאוגרפי (אשכולות)</label>
+        <select id="wGeo"><option value="0">כבוי</option><option value="0.5" selected>רגיל</option><option value="1">גבוה</option></select></div>
+    </div>
+    <div class="note" style="margin-top:12px">כיסוי מלא של בתי הספר הוא תמיד השיקול הראשון – המשקלים למעלה משפיעים רק על הבחירה בין שיבוצים אפשריים.</div>
+  </div>
+
+  <div class="card">
+    <h2>שעות פעילות ועומס בוקר</h2>
+    <div class="sub">המנחות נוסעות בשעת העומס של הבוקר, ולכן זמן הנסיעה בפועל ארוך מהזמן ה"רגיל". כאן קובעים בכמה.</div>
+    <div class="grid3">
+      <div class="field"><label>שעת הגעה לבית ספר</label><input type="time" id="setArrive" value="08:15"></div>
+      <div class="field"><label>שעת סיום הביקור</label><input type="time" id="setLeave" value="14:00"></div>
+      <div class="field"><label>מקדם עומס — נסיעת בוקר</label><input type="number" id="setRush" value="1.3" step="0.05" min="1"></div>
+      <div class="field"><label>מקדם עומס — נסיעת חזרה</label><input type="number" id="setRushBack" value="1.1" step="0.05" min="1"></div>
+      <div class="field"><label>שעת יציאה שמוקדמת מדי (התרעה)</label><input type="time" id="setEarly" value="06:45"></div>
+      <div class="field"><label>המגבלה של 40 דק' נמדדת לפי</label>
+        <select id="setLimitBasis">
+          <option value="rush" selected>זמן נסיעת בוקר (מומלץ)</option>
+          <option value="base">זמן נסיעה רגיל</option>
+        </select></div>
+    </div>
+    <div class="note" style="margin-top:12px">
+      ×1.3 מייצג פקק בוקר טיפוסי בצירים של הצפון והמרכז בין 7:00 ל‑8:15 — נסיעה של 30 דקות הופכת ל‑39.
+      אם יש לך תחושה מדויקת יותר לגבי ציר מסוים, אפשר פשוט לרשום את הזמן האמיתי ידנית במטריצה למטה (הוא גובר על הכל, כולל המקדם).
+      עם מפתח Google הכלי מבקש זמן נהיגה <b>עם תנועה אמיתית</b> לשעת היציאה, ואז המקדם לא מופעל.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>חישוב זמני נסיעה</h2>
+    <div class="sub">בלי לחשב כלום הכלי עובד על הערכה מובנית (קואורדינטות יישובים, ללא אינטרנט). ללחיצה אחת על "חשב זמני נסיעה אמיתיים" מקבלים זמני נהיגה אמיתיים ממנועי קוד פתוח – בחינם ובלי מפתח.</div>
+    <div class="grid3">
+      <div class="field"><label>מהירות ממוצעת (קמ"ש)</label><input type="number" id="setSpeed" value="65"></div>
+      <div class="field"><label>מקדם עקיפה (כביש מול קו אווירי)</label><input type="number" id="setDetour" value="1.35" step="0.05"></div>
+      <div class="field"><label>תוספת קבועה (דקות)</label><input type="number" id="setFixed" value="5"></div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    <div class="field" style="max-width:560px"><label>מנוע מפות</label>
+      <select id="engine" onchange="engineChanged()">
+        <option value="osm" selected>OpenStreetMap — Photon + OSRM (קוד פתוח, חינם, בלי מפתח)</option>
+        <option value="self">שרת עצמי שלך (OSRM / Nominatim בדוקר)</option>
+        <option value="google">Google Maps (דורש מפתח בתשלום)</option>
+      </select></div>
+
+    <div id="engOsm" style="margin-top:12px">
+      <div class="row">
+        <div class="field" style="min-width:230px"><label>גיאוקודינג (כתובת ← נקודה)</label>
+          <select id="geocoder">
+            <option value="photon" selected>Photon (photon.komoot.io)</option>
+            <option value="nominatim">Nominatim (OpenStreetMap)</option>
+          </select></div>
+        <div class="field" style="min-width:230px"><label>מנוע ניתוב (מטריצת זמנים)</label>
+          <select id="router"><option value="osrm" selected>OSRM Demo (router.project-osrm.org)</option></select></div>
+      </div>
+      <div class="note" style="margin-top:10px">
+        הכל קוד פתוח ובלי מפתח. נתוני המפות: <b>© OpenStreetMap contributors</b> (רישיון ODbL).
+        השרתים הציבוריים הם שירות התנדבותי — הכלי מאט את הבקשות בהתאם ושומר את התוצאות, כך שמחשבים כל כתובת פעם אחת בלבד.
+        לשימוש כבד או מסחרי — הרימו שרת משלכם (ראו "שרת עצמי").
+        מדיניות השימוש של Nominatim: <a href="https://operations.osmfoundation.org/policies/nominatim/" target="_blank">operations.osmfoundation.org/policies/nominatim</a>
+      </div>
+    </div>
+
+    <div id="engSelf" class="hidden" style="margin-top:12px">
+      <div class="row">
+        <div class="field" style="min-width:280px"><label>כתובת שרת OSRM</label>
+          <input id="selfOsrm" placeholder="http://localhost:5000" style="border:1px solid var(--line);background:#fff"></div>
+        <div class="field" style="min-width:280px"><label>כתובת שרת גיאוקודינג (Nominatim/Photon)</label>
+          <input id="selfGeo" placeholder="http://localhost:8080" style="border:1px solid var(--line);background:#fff"></div>
+      </div>
+      <div class="note" style="margin-top:10px">
+        הרמה בשתי פקודות (מפת ישראל בלבד, ~120MB):<br>
+        <code style="direction:ltr;display:block;margin-top:6px;font-size:12px;line-height:1.7">
+        wget https://download.geofabrik.de/asia/israel-and-palestine-latest.osm.pbf<br>
+        docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-extract -p /opt/car.lua /data/israel-and-palestine-latest.osm.pbf<br>
+        docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-partition /data/israel-and-palestine-latest.osrm<br>
+        docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-customize /data/israel-and-palestine-latest.osrm<br>
+        docker run -p 5000:5000 -v "${PWD}:/data" osrm/osrm-backend osrm-routed --algorithm mld /data/israel-and-palestine-latest.osrm
+        </code>
+      </div>
+    </div>
+
+    <div id="engGoogle" class="hidden" style="margin-top:12px">
+      <div class="field" style="max-width:520px"><label>מפתח Google Maps API (Maps JavaScript + Distance Matrix + Geocoding)</label>
+        <input type="password" id="apiKey" placeholder="AIza..." style="border:1px solid var(--line);background:#fff"></div>
+      <div class="note" style="margin-top:10px">console.cloud.google.com ← פרויקט חדש ← Enable APIs ← Credentials ← Create API key. המפתח נשאר במחשב שלך ולא נשמר בקובץ.</div>
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <button class="btn sm" onclick="computeTravel()">חשב זמני נסיעה אמיתיים</button>
+      <button class="btn sm grey" onclick="resetTravelCache()">נקה זמנים שנשמרו</button>
+      <span id="travelStatus" class="pill info">מצב: הערכה מובנית</span>
+    </div>
+    <div id="geoReport" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <h2>מטריצת זמני נסיעה (דקות, לכיוון אחד)</h2>
+    <div class="sub">אפשר לתקן כל תא ידנית – התיקון גובר על החישוב האוטומטי.</div>
+    <div style="overflow:auto"><table id="tblMatrix"></table></div>
+    <div class="legend">
+      <span><i style="background:var(--ok-soft)"></i>בטווח</span>
+      <span><i style="background:var(--warn-soft)"></i>גבולי (עד 15% מעל)</span>
+      <span><i style="background:var(--bad-soft)"></i>רחוק מדי</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RUN ============ -->
+<section id="tab-run" class="hidden">
+  <div class="card noprint">
+    <div class="row">
+      <button class="btn" onclick="runSolver()">צור אפשרויות שיבוץ</button>
+      <button class="btn ghost sm" onclick="window.print()">הדפס / שמור PDF</button>
+      <button class="btn grey sm" onclick="exportXlsx()">ייצוא לאקסל</button>
+      <span id="runInfo" style="color:var(--muted);font-size:13px"></span>
+    </div>
+  </div>
+  <div id="results"></div>
+</section>
+
+<!-- ============ HELP ============ -->
+<section id="tab-help" class="hidden">
+  <div class="card">
+    <h2>איך זה עובד</h2>
+    <ol style="padding-inline-start:20px;line-height:1.9">
+      <li><b>נתונים</b> – ממלאים את שתי הטבלאות: מנחות (כתובת בית + ימי זמינות) ובתי ספר (כתובת + הימים שבהם הם מוכנים לקבל מנחה). אפשר להדביק ישירות מאקסל או לייבא קובץ .xlsx.</li>
+      <li><b>הגדרות</b> – קובעים מקסימום זמן נסיעה (ברירת מחדל 40 דקות), כמה בתי ספר ליום, ומה חשוב יותר: נסיעות קצרות, איזון בין מנחות, או אשכולות גיאוגרפיים.</li>
+      <li><b>שיבוץ</b> – לוחצים "צור אפשרויות". הכלי בונה כמה אפשרויות שונות, מדרג אותן, ומראה לוח שבועי מלא + רשימת בתי ספר שלא הצליח לשבץ ולמה.</li>
+    </ol>
+    <h2 style="margin-top:18px">מה האלגוריתם בודק</h2>
+    <ul style="padding-inline-start:20px;line-height:1.9">
+      <li>שיבוץ אפשרי רק ביום שנמצא גם בזמינות המנחה וגם בזמינות בית הספר.</li>
+      <li>זמן הנסיעה מבית המנחה לבית הספר קטן או שווה למקסימום שהגדרת.</li>
+      <li>מנחה לא משובצת לשני בתי ספר באותו יום (אלא אם הגדלת את "בתי ספר ליום").</li>
+      <li>מספר ימי העבודה של המנחה לא עובר את המקסימום שלה.</li>
+      <li>בית ספר עם 2 ביקורים בשבוע יקבל שני ימים שונים.</li>
+      <li><b>עומס בוקר:</b> זמן הנסיעה מוכפל במקדם (ברירת מחדל ×1.3) כי נוסעים בשעת השיא, ורק אז נבדקת המגבלה של 40 דקות. הלוח מציג לכל שיבוץ את שעת היציאה מהבית ואת שעת החזרה, לפי שעות הפעילות של בית הספר (8:15–14:00 כברירת מחדל, וניתן לשנות לכל בית ספר בנפרד).</li>
+    </ul>
+    <h2 style="margin-top:18px">בתי ספר שלא שובצו</h2>
+    <p>לכל בית ספר שנשאר בחוץ מוצגת הסיבה: אין יום חופף לאף מנחה, כל המנחות רחוקות מדי, או שכל המנחות המתאימות כבר תפוסות באותו יום. זה בדיוק המקום שבו כדאי לשקול הרחבת טווח הנסיעה או גיוס מנחה נוספת באזור.</p>
+  </div>
+</section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ================= בסיס ================= */
+const DAYS = ['א','ב','ג','ד','ה','ו'];
+const DAY_FULL = {'ראשון':'א','שני':'ב','שלישי':'ג','רביעי':'ד','חמישי':'ה','שישי':'ו'};
+
+const state = { guides:[], schools:[], travel:{}, travelSrc:{}, manual:{}, coords:{}, options:[], seq:1 };
+
+function uid(){ return 'x'+(state.seq++); }
+function toast(msg,ms){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none', ms||3200); }
+function num(id,def){ const v=parseFloat(document.getElementById(id).value); return isNaN(v)?def:v; }
+
+/* ---------- פענוח ימים ---------- */
+function parseDays(txt){
+  if(!txt) return [];
+  let s=String(txt).trim();
+  const out=new Set();
+  // "א-ה" / "א - ה"
+  const range=s.match(/([אבגדהו])\s*[-–]\s*([אבגדהו])/);
+  if(range){
+    const a=DAYS.indexOf(range[1]), b=DAYS.indexOf(range[2]);
+    if(a>=0&&b>=a) for(let i=a;i<=b;i++) out.add(DAYS[i]);
+    s=s.replace(range[0],' ');
+  }
+  Object.keys(DAY_FULL).forEach(k=>{ if(s.includes(k)) out.add(DAY_FULL[k]); });
+  s.split(/[,\s،+/ו]+/).forEach(p=>{
+    p=p.replace(/["'׳״]/g,'').trim();
+    if(p.length===1 && DAYS.includes(p)) out.add(p);
+    if(p.length===2 && p[0]==='ו' && DAYS.includes(p[1])) out.add(p[1]);
+  });
+  return DAYS.filter(d=>out.has(d));
+}
+
+/* ---------- גזטיר יישובים בישראל ---------- */
+const GAZ = {
+"כפר קרע":[32.5064,35.0489],"עראבה":[32.8514,35.3389],"נצרת":[32.7021,35.2978],
+"נוף הגליל":[32.7100,35.3167],"נצרת עילית":[32.7100,35.3167],"קרית אתא":[32.8117,35.1139],
+"קריית אתא":[32.8117,35.1139],"נהריה":[33.0078,35.0950],"כברי":[33.0231,35.1483],
+"גילון":[32.9086,35.2503],"משגב":[32.8875,35.2967],"מגדל העמק":[32.6753,35.2411],
+"רמת ישי":[32.7028,35.1697],"עין המפרץ":[32.9414,35.0972],"עילוט":[32.7167,35.2603],
+"מזרע":[32.6297,35.2986],"מצפה אביב":[32.8836,35.2653],"ניר עציון":[32.7008,34.9631],
+"חיפה":[32.7940,34.9896],"פרדס חנה":[32.4736,34.9750],"כרכור":[32.4736,34.9750],
+"חדרה":[32.4340,34.9196],"ירושלים":[31.7683,35.2137],"פקיעין":[32.9772,35.3336],
+"זמר":[32.3903,35.0158],"מודיעין":[31.8928,35.0104],"כפר יונה":[32.3175,34.9367],
+"עכו":[32.9281,35.0817],"טמרה":[32.8531,35.2000],"מעיליא":[33.0242,35.2586],
+"חורפיש":[33.0175,35.3406],"טייבה":[32.2661,35.0089],"רעננה":[32.1847,34.8708],
+"הרצליה":[32.1624,34.8447],"פתח תקווה":[32.0870,34.8878],"ראשון לציון":[31.9730,34.7925],
+"ראשל\"צ":[31.9730,34.7925],"נס ציונה":[31.9293,34.7986],"יבנה":[31.8779,34.7396],
+"אור עקיבא":[32.5081,34.9186],"אור יהודה":[32.0300,34.8500],"באר שבע":[31.2530,34.7915],
+"תל אביב":[32.0853,34.7818],"עוספיה":[32.7000,35.0667],"עספיא":[32.7000,35.0667],
+"דלית אל כרמל":[32.6931,35.0489],"כרמיאל":[32.9192,35.2953],"עפולה":[32.6078,35.2897],
+"טבריה":[32.7940,35.5320],"צפת":[32.9646,35.4960],"מעלות":[33.0167,35.2833],
+"תרשיחא":[33.0167,35.2833],"שלומי":[33.0733,35.1450],"קרית מוצקין":[32.8394,35.0819],
+"קריית מוצקין":[32.8394,35.0819],"קרית ביאליק":[32.8272,35.0864],"קרית ים":[32.8478,35.0700],
+"קרית חיים":[32.8300,35.0500],"זכרון יעקב":[32.5736,34.9528],"בנימינה":[32.5153,34.9486],
+"טירת כרמל":[32.7614,34.9714],"נשר":[32.7700,35.0400],"יקנעם":[32.6597,35.1100],
+"כפר חסידים":[32.7500,35.0917],"רחובות":[31.8928,34.8113],"אשדוד":[31.8014,34.6435],
+"אשקלון":[31.6688,34.5743],"נתניה":[32.3215,34.8532],"כפר סבא":[32.1750,34.9070],
+"רמלה":[31.9288,34.8667],"לוד":[31.9514,34.8956],"בית שאן":[32.4969,35.4997],
+"שפרעם":[32.8056,35.1719],"סחנין":[32.8644,35.2969],"סח'נין":[32.8644,35.2969],
+"דיר אל אסד":[32.9333,35.2833],"מג'ד אל כרום":[32.9200,35.2500],"בענה":[32.9250,35.2700],
+"אלראזי":[32.7021,35.2978],"רמת גן":[32.0700,34.8200],"גבעתיים":[32.0700,34.8100],
+"חולון":[32.0114,34.7722],"בת ים":[32.0231,34.7503],"בני ברק":[32.0800,34.8300],
+"ראש העין":[32.0956,34.9556],"אריאל":[32.1056,35.1728],"קרית שמונה":[33.2075,35.5697],
+"נצרת אילית":[32.7100,35.3167],"מעלה אדומים":[31.7726,35.2978],"בית שמש":[31.7497,34.9886],
+"אילת":[29.5581,34.9482],"דימונה":[31.0700,35.0300],"אופקים":[31.3100,34.6200],
+"נתיבות":[31.4200,34.5900],"שדרות":[31.5250,34.5964],"קרית גת":[31.6100,34.7642],
+"עתלית":[32.6889,34.9425],"פוריידיס":[32.6000,34.9500],"ג'סר א זרקא":[32.5350,34.9100],
+"בית ג'ן":[32.9667,35.3833],"ירכא":[32.9500,35.2000],"אבו סנאן":[32.9500,35.1667],
+"כפר יאסיף":[32.9550,35.1620],"ג'דידה מכר":[32.9300,35.1300],"כפר מנדא":[32.8100,35.2500],
+"אעבלין":[32.8000,35.1900],"טורעאן":[32.7700,35.3800],"אכסאל":[32.6800,35.3400],
+"יפיע":[32.6900,35.2700],"מגאר":[32.8900,35.4100],"עין מאהל":[32.7200,35.3400],
+"רכסים":[32.7400,35.1000],"נווה שאנן":[32.7700,35.0200],"טירת הכרמל":[32.7614,34.9714],
+"בנימינה גבעת עדה":[32.5153,34.9486],"אבן יהודה":[32.2700,34.8900],"הוד השרון":[32.1500,34.8900],
+"רמת השרון":[32.1400,34.8400],"גדרה":[31.8100,34.7800],"מזכרת בתיה":[31.8500,34.8400],
+"קרית מלאכי":[31.7300,34.7500],"עמק חפר":[32.3700,34.9000],"טירה":[32.2333,34.9500],
+"קלנסווה":[32.2833,34.9833],"באקה אל גרביה":[32.4167,35.0333],"אום אל פחם":[32.5194,35.1522],
+"מעלה עירון":[32.5300,35.1800],"ערערה":[32.4800,35.0900],"כפר ברא":[32.1600,34.9700],
+"כפר קאסם":[32.1150,34.9800],"רהט":[31.3925,34.7539],"ערד":[31.2589,35.2125],
+"מצפה רמון":[30.6100,34.8000],"יבנאל":[32.7050,35.5050],"מגדל":[32.8450,35.5000],
+"רמת יוחנן":[32.7833,35.1167],"אלונים":[32.7167,35.1333],"שער העמקים":[32.7300,35.1200],
+"כפר המכבי":[32.7900,35.1000],"יגור":[32.7400,35.0800],"עין הוד":[32.6900,34.9800],
+"פוריה":[32.7500,35.5300],"כפר תבור":[32.6900,35.4100],"גבעת אבני":[32.7400,35.4600],
+"מגדל העמק ":[32.6753,35.2411],"בסמת טבעון":[32.7200,35.1400],"קרית טבעון":[32.7200,35.1250],
+"אלפי מנשה":[32.1667,35.0167],"עלי":[32.0600,35.2600],"שוהם":[31.9990,34.9470]
+};
+const GAZ_KEYS = Object.keys(GAZ).sort((a,b)=>b.length-a.length);
+
+function normalize(s){ return String(s||'').replace(/["'׳״,.\-–]/g,' ').replace(/\s+/g,' ').trim(); }
+function geoLookup(address){
+  const key='addr:'+normalize(address);
+  if(state.coords[key]) return state.coords[key];
+  const n=normalize(address);
+  for(const k of GAZ_KEYS){ if(n.includes(normalize(k))) return {lat:GAZ[k][0],lng:GAZ[k][1],src:'gaz',name:k}; }
+  return null;
+}
+function haversine(a,b){
+  const R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
+  const la1=a.lat*Math.PI/180, la2=b.lat*Math.PI/180;
+  const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function estimateMinutes(fromAddr,toAddr){
+  const a=geoLookup(fromAddr), b=geoLookup(toAddr);
+  if(!a||!b) return null;
+  const km=haversine(a,b)*num('setDetour',1.35);
+  return Math.round(km/num('setSpeed',65)*60 + num('setFixed',5));
+}
+function travelKey(g,s){ return g.id+'|'+s.id; }
+function travelMinutes(g,s){
+  const k=travelKey(g,s);
+  if(state.manual[k]!=null) return state.manual[k];
+  if(state.travel[k]!=null) return state.travel[k];
+  return estimateMinutes(g.address,s.address);
+}
+/* ---------- שעות ועומס ---------- */
+function hm2min(t){ if(!t) return null; const m=String(t).match(/(\d{1,2})[:.](\d{2})/);
+  return m? (+m[1])*60+(+m[2]) : null; }
+function min2hm(m){ if(m==null) return '';
+  m=Math.round(m); while(m<0) m+=1440;
+  return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+function defaultHoursTxt(){ return (document.getElementById('setArrive').value||'08:15')+'-'+
+  (document.getElementById('setLeave').value||'14:00'); }
+function schoolHours(s){
+  const def=[hm2min(document.getElementById('setArrive').value)||495,
+             hm2min(document.getElementById('setLeave').value)||840];
+  if(!s.hours) return {start:def[0],end:def[1]};
+  const parts=String(s.hours).split(/[-–—]/);
+  return {start:hm2min(parts[0])??def[0], end:hm2min(parts[1])??def[1]};
+}
+/* זמן נסיעה בפועל בבוקר — כולל מקדם עומס. אם המספר הגיע מגוגל עם תנועה אמיתית, לא מכפילים. */
+function rushMinutes(g,s){
+  const base=travelMinutes(g,s); if(base==null) return null;
+  const k=travelKey(g,s);
+  if(state.manual[k]!=null) return base;                 // מספר ידני = כבר אמיתי
+  if(state.travelSrc[k]==='Google+traffic') return base; // כבר כולל תנועה
+  return Math.round(base*Math.max(1,num('setRush',1.3)));
+}
+function backMinutes(g,s){
+  const base=travelMinutes(g,s); if(base==null) return null;
+  return Math.round(base*Math.max(1,num('setRushBack',1.1)));
+}
+function effMinutes(g,s){
+  return document.getElementById('setLimitBasis').value==='base' ? travelMinutes(g,s) : rushMinutes(g,s);
+}
+function travelSource(g,s){
+  const k=travelKey(g,s);
+  if(state.manual[k]!=null) return 'ידני';
+  if(state.travel[k]!=null) return state.travelSrc[k]||'מנוע מפות';
+  return 'הערכה מובנית';
+}
+
+/* ================= טבלאות ================= */
+function addGuide(d){ state.guides.push(Object.assign({id:uid(),name:'',address:'',daysTxt:'א-ה',maxDays:5},d||{})); renderGuides(); }
+function addSchool(d){ state.schools.push(Object.assign({id:uid(),name:'',address:'',daysTxt:'',visits:1,priority:1},d||{})); renderSchools(); }
+function del(kind,id){ state[kind]=state[kind].filter(x=>x.id!==id); renderGuides(); renderSchools(); renderMatrix(); }
+
+function renderGuides(){
+  const tb=document.querySelector('#tblGuides tbody'); tb.innerHTML='';
+  state.guides.forEach(g=>{
+    const days=parseDays(g.daysTxt);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><input value="${esc(g.name)}" oninput="upd('guides','${g.id}','name',this.value)"></td>
+      <td><input value="${esc(g.address)}" oninput="upd('guides','${g.id}','address',this.value,true)"></td>
+      <td><input value="${esc(g.daysTxt)}" oninput="upd('guides','${g.id}','daysTxt',this.value,true)"></td>
+      <td><input type="number" min="1" max="6" value="${g.maxDays}" oninput="upd('guides','${g.id}','maxDays',+this.value)"></td>
+      <td>${dayPills(days)} ${geoLookup(g.address)?'':'<span class="pill bad">כתובת לא זוהתה</span>'}</td>
+      <td><button class="btn danger" onclick="del('guides','${g.id}')">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+function renderSchools(){
+  const tb=document.querySelector('#tblSchools tbody'); tb.innerHTML='';
+  state.schools.forEach(s=>{
+    const days=parseDays(s.daysTxt);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><input value="${esc(s.name)}" oninput="upd('schools','${s.id}','name',this.value)"></td>
+      <td><input value="${esc(s.address)}" oninput="upd('schools','${s.id}','address',this.value,true)"></td>
+      <td><input value="${esc(s.daysTxt)}" oninput="upd('schools','${s.id}','daysTxt',this.value,true)"></td>
+      <td><input value="${esc(s.hours||'')}" placeholder="${defaultHoursTxt()}" oninput="upd('schools','${s.id}','hours',this.value)"></td>
+      <td><input type="number" min="1" max="5" value="${s.visits}" oninput="upd('schools','${s.id}','visits',+this.value)"></td>
+      <td><input type="number" min="1" max="5" value="${s.priority}" oninput="upd('schools','${s.id}','priority',+this.value)"></td>
+      <td>${dayPills(days)} ${geoLookup(s.address)?'':'<span class="pill bad">?</span>'}</td>
+      <td><button class="btn danger" onclick="del('schools','${s.id}')">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+function dayPills(days){ return days.length? days.map(d=>`<span class="pill ok">${d}</span>`).join(' ') : '<span class="pill bad">—</span>'; }
+function esc(s){ return String(s==null?'':s).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function upd(kind,id,field,val,re){
+  const o=state[kind].find(x=>x.id===id); if(!o) return; o[field]=val;
+  if(re){ clearTimeout(window._rt); window._rt=setTimeout(()=>{ renderGuides(); renderSchools(); renderMatrix(); },500); }
+}
+
+function renderMatrix(){
+  const t=document.getElementById('tblMatrix');
+  if(!state.guides.length||!state.schools.length){ t.innerHTML='<tr><td>הוסף מנחות ובתי ספר כדי לראות את המטריצה</td></tr>'; return; }
+  const max=num('setMaxMin',40);
+  let h='<thead><tr><th>בית ספר \\ מנחה</th>'+state.guides.map(g=>`<th>${esc(g.name||'—')}</th>`).join('')+'</tr></thead><tbody>';
+  state.schools.forEach(s=>{
+    h+=`<tr><th style="text-align:right">${esc(s.name||'—')}</th>`;
+    state.guides.forEach(g=>{
+      const m=travelMinutes(g,s), e=effMinutes(g,s), r=rushMinutes(g,s);
+      let cls='';
+      if(e==null) cls='';
+      else if(e<=max) cls='background:var(--ok-soft)';
+      else if(e<=max*1.15) cls='background:var(--warn-soft)';
+      else cls='background:var(--bad-soft)';
+      h+=`<td style="${cls}"><input type="number" style="text-align:center" value="${m==null?'':m}"
+           title="${travelSource(g,s)}" onchange="setManual('${g.id}','${s.id}',this.value)">
+           <span class="mins" style="text-align:center;display:block">${r==null?'':'בוקר '+r}</span></td>`;
+    });
+    h+='</tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+}
+function setManual(gid,sid,v){
+  const k=gid+'|'+sid;
+  if(v===''||v==null) delete state.manual[k]; else state.manual[k]=Math.round(+v);
+  renderMatrix();
+}
+function resetTravelCache(){ state.travel={}; state.travelSrc={}; state.manual={}; state.coords={}; renderMatrix();
+  document.getElementById('travelStatus').textContent='מצב: הערכה מובנית';
+  document.getElementById('travelStatus').className='pill info'; toast('זמני הנסיעה אופסו'); }
+
+/* ================= האלגוריתם ================= */
+function mulberry32(a){ return function(){ a|=0;a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+function buildContext(){
+  const maxMin=num('setMaxMin',40), perDay=Math.max(1,num('setPerDay',1));
+  const guides=state.guides.filter(g=>g.name).map(g=>({...g,days:parseDays(g.daysTxt),
+      maxDays:Math.min(6,Math.max(1,g.maxDays||5))}));
+  const schools=state.schools.filter(s=>s.name).map(s=>({...s,days:parseDays(s.daysTxt),
+      visits:Math.max(1,s.visits||1),priority:s.priority||1}));
+  // אפשרויות לכל בית ספר
+  const feas={}, reason={};
+  schools.forEach(s=>{
+    const list=[]; let dayOverlap=false, anyKnown=false;
+    guides.forEach((g,gi)=>{
+      const common=s.days.filter(d=>g.days.includes(d));
+      if(common.length) dayOverlap=true;
+      const m=effMinutes(g,s), base=travelMinutes(g,s);
+      if(m!=null) anyKnown=true;
+      common.forEach(d=>{ if(m!=null && m<=maxMin) list.push({gi,day:d,min:m,base,
+        rush:rushMinutes(g,s),back:backMinutes(g,s)}); });
+    });
+    feas[s.id]=list;
+    reason[s.id] = list.length? null
+      : (!s.days.length? 'לא הוגדרו ימי זמינות לבית הספר'
+      : !anyKnown? 'הכתובת לא זוהתה — הוסף שם יישוב מוכר, או מלא ידנית את זמני הנסיעה במטריצה'
+      : !dayOverlap? 'אין אף מנחה שזמינה ביום שבית הספר פנוי'
+      : 'כל המנחות שמתאימות ביום הזה רחוקות יותר מ־'+maxMin+' דקות');
+  });
+  return {guides,schools,feas,reason,maxMin,perDay};
+}
+
+function solveOnce(ctx,seed){
+  const rnd=mulberry32(seed);
+  const wT=parseFloat(document.getElementById('wTravel').value);
+  const wB=parseFloat(document.getElementById('wBalance').value);
+  const wG=parseFloat(document.getElementById('wGeo').value);
+  const {guides,schools,feas,perDay}=ctx;
+
+  const load=guides.map(()=>({days:new Set(),perDayCount:{},schools:[]}));
+  const assigned=[]; const failed=[];
+
+  // משימות: כל ביקור בנפרד
+  const tasks=[];
+  schools.forEach(s=>{ for(let k=0;k<s.visits;k++) tasks.push({s,k,opts:feas[s.id].length}); });
+  tasks.sort((a,b)=> (a.opts-b.opts) || (b.s.priority-a.s.priority) || (rnd()-0.5));
+
+  const usedDaysForSchool={};
+  function geoPenalty(gi,s){
+    const arr=load[gi].schools; if(!arr.length) return 0;
+    const p=geoLookup(s.address); if(!p) return 0;
+    let sum=0,n=0;
+    arr.forEach(o=>{ const q=geoLookup(o.address); if(q){ sum+=haversine(p,q); n++; } });
+    return n? (sum/n)/num('setSpeed',65)*60*0.5 : 0;
+  }
+  function canPlace(gi,day,s){
+    const g=guides[gi], L=load[gi];
+    if((L.perDayCount[day]||0)>=perDay) return false;
+    if(!L.days.has(day) && L.days.size>=g.maxDays) return false;
+    if((usedDaysForSchool[s.id]||new Set()).has(day)) return false;
+    return true;
+  }
+  function place(gi,day,s,o){
+    const L=load[gi]; L.days.add(day); L.perDayCount[day]=(L.perDayCount[day]||0)+1; L.schools.push(s);
+    (usedDaysForSchool[s.id]=usedDaysForSchool[s.id]||new Set()).add(day);
+    const h=schoolHours(s);
+    assigned.push({gi,day,school:s,min:o.min,base:o.base,rush:o.rush,back:o.back,
+      leaveHome:h.start-(o.rush!=null?o.rush:o.min), arrive:h.start, endVisit:h.end,
+      home:h.end+(o.back!=null?o.back:o.min)});
+  }
+  function unplace(a){
+    const L=load[a.gi]; L.perDayCount[a.day]--; if(!L.perDayCount[a.day]){ delete L.perDayCount[a.day]; L.days.delete(a.day); }
+    const idx=L.schools.indexOf(a.school); if(idx>=0) L.schools.splice(idx,1);
+    usedDaysForSchool[a.school.id].delete(a.day);
+    assigned.splice(assigned.indexOf(a),1);
+  }
+
+  tasks.forEach(t=>{
+    const s=t.s;
+    let best=null,bestScore=1e9;
+    feas[s.id].forEach(o=>{
+      if(!canPlace(o.gi,o.day,s)) return;
+      const g=guides[o.gi];
+      const balance = wB * ((load[o.gi].days.size)/g.maxDays) * 45;
+      const geo = wG * geoPenalty(o.gi,s);
+      const score = wT*o.min + balance + geo + rnd()*7;
+      if(score<bestScore){ bestScore=score; best=o; }
+    });
+    if(best) place(best.gi,best.day,s,best);
+    else failed.push(s);
+  });
+
+  // תיקון: ניסיון להזיז שיבוץ קיים כדי לפנות מקום לבית ספר שנשאר בחוץ
+  for(let pass=0;pass<2;pass++){
+    for(let i=failed.length-1;i>=0;i--){
+      const s=failed[i]; let done=false;
+      for(const o of feas[s.id]){
+        const blocker=assigned.find(a=>a.gi===o.gi && a.day===o.day);
+        if(!blocker) continue;
+        unplace(blocker);
+        if(canPlace(o.gi,o.day,s)){
+          // האם החוסם יכול לעבור למקום אחר?
+          let alt=null,altScore=1e9;
+          feas[blocker.school.id].forEach(p=>{
+            if(p.gi===o.gi && p.day===o.day) return;
+            if(!canPlace(p.gi,p.day,blocker.school)) return;
+            const sc=p.min+rnd(); if(sc<altScore){altScore=sc;alt=p;}
+          });
+          if(alt){ place(o.gi,o.day,s,o); place(alt.gi,alt.day,blocker.school,alt);
+            failed.splice(i,1); done=true; break; }
+        }
+        place(blocker.gi,blocker.day,blocker.school,blocker);
+      }
+      if(done) continue;
+    }
+  }
+
+  const totalTravel=assigned.reduce((a,b)=>a+b.min,0);
+  const loads=guides.map((g,i)=>load[i].schools.length);
+  const mean=loads.reduce((a,b)=>a+b,0)/(loads.length||1);
+  const imbalance=Math.sqrt(loads.reduce((a,b)=>a+(b-mean)**2,0)/(loads.length||1));
+  return {assigned,failed,totalTravel,imbalance,load,
+    sig:assigned.map(a=>a.school.id+':'+a.gi+a.day).sort().join('|')};
+}
+
+function runSolver(){
+  const ctx=buildContext();
+  if(!ctx.guides.length||!ctx.schools.length){ toast('צריך למלא לפחות מנחה אחת ובית ספר אחד'); return; }
+  const want=Math.max(1,Math.min(6,num('setOptions',3)));
+  const found=[],seen=new Set();
+  for(let seed=1; seed<=400 && found.length<want*8; seed++){
+    const sol=solveOnce(ctx,seed*7919);
+    if(seen.has(sol.sig)) continue; seen.add(sol.sig); found.push(sol);
+  }
+  found.sort((a,b)=> (b.assigned.length-a.assigned.length)
+     || (a.totalTravel-b.totalTravel) || (a.imbalance-b.imbalance));
+  state.options=found.slice(0,want); state.ctx=ctx;
+  renderResults();
+  document.getElementById('runInfo').textContent =
+    `נבדקו ${seen.size} פתרונות שונים · מוצגות ${state.options.length} אפשרויות`;
+}
+
+/* ================= תצוגת תוצאות ================= */
+function renderResults(){
+  const box=document.getElementById('results');
+  if(!state.options.length){ box.innerHTML=''; return; }
+  let h='<div class="opt-tabs noprint">';
+  state.options.forEach((o,i)=>{
+    h+=`<button class="${i===0?'active':''}" onclick="showOpt(${i})">אפשרות ${i+1} · ${o.assigned.length} שיבוצים · ${Math.round(o.totalTravel/(o.assigned.length||1))} דק' ממוצע</button>`;
+  });
+  h+='</div>';
+  state.options.forEach((o,i)=> h+=`<div class="opt-body ${i?'hidden':''}" id="opt${i}">${renderOption(o,i)}</div>`);
+  box.innerHTML=h;
+}
+function showOpt(i){
+  document.querySelectorAll('.opt-body').forEach((e,j)=>e.classList.toggle('hidden',j!==i));
+  document.querySelectorAll('.opt-tabs button').forEach((b,j)=>b.classList.toggle('active',j===i));
+}
+function renderOption(o,idx){
+  const ctx=state.ctx, maxMin=ctx.maxMin;
+  const totalNeeded=ctx.schools.reduce((a,s)=>a+s.visits,0);
+  const cover=Math.round(o.assigned.length/totalNeeded*100);
+  let h=`<div class="card"><h2>אפשרות ${idx+1} — לוח שבועי</h2>`;
+  h+=`<div class="kpi">
+     <div><b>${o.assigned.length}/${totalNeeded}</b><span>ביקורים שובצו (${cover}%)</span></div>
+     <div><b>${Math.round(o.totalTravel/(o.assigned.length||1))}</b><span>דקות נסיעה בממוצע</span></div>
+     <div><b>${Math.round(o.totalTravel)}</b><span>סה"כ דקות נסיעה בשבוע (לכיוון)</span></div>
+     <div><b>${o.failed.length}</b><span>בתי ספר לא משובצים</span></div>
+     <div><b>${o.imbalance.toFixed(1)}</b><span>פער עומס בין מנחות</span></div></div>`;
+
+  h+='<table class="sched"><thead><tr><th>מנחה</th>'+DAYS.map(d=>`<th>יום ${d}</th>`).join('')+'<th>סה"כ</th></tr></thead><tbody>';
+  ctx.guides.forEach((g,gi)=>{
+    h+=`<tr><th class="gname">${esc(g.name)}<span class="mins">${esc(g.address)}</span></th>`;
+    DAYS.forEach(d=>{
+      const items=o.assigned.filter(a=>a.gi===gi&&a.day===d);
+      if(items.length){
+        const early=hm2min(document.getElementById('setEarly').value)||405;
+        const far=items.some(a=>a.min>maxMin*0.8 || a.leaveHome<early);
+        h+=`<td class="slot assigned ${far?'far':''}">`+items.map(a=>
+          `${esc(a.school.name)}<span class="mins">יציאה ${min2hm(a.leaveHome)} · ${a.rush} דק' · חזרה ${min2hm(a.home)}</span>`)
+          .join('<hr style="border:none;border-top:1px solid #cfe8d8;margin:3px 0">')+'</td>';
+      } else if(!g.days.includes(d)) h+='<td class="slot off">לא זמינה</td>';
+      else h+='<td class="slot free"></td>';
+    });
+    h+=`<td style="text-align:center;font-weight:600">${o.load[gi].schools.length}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  h+=`<div class="legend"><span><i style="background:var(--ok-soft)"></i>שובץ</span>
+      <span><i style="background:var(--warn-soft)"></i>נסיעה ארוכה או יציאה מוקדמת מדי</span>
+      <span><i style="background:#f1f3f7"></i>המנחה לא זמינה ביום זה</span>
+      <span><i style="background:#fff;border:1px solid #ddd"></i>יום פנוי</span></div></div>`;
+
+  // לא שובצו
+  if(o.failed.length){
+    h+='<div class="card"><h2>בתי ספר שלא שובצו</h2><table><thead><tr><th>בית ספר</th><th>ימים מבוקשים</th><th>סיבה</th><th>המנחה הכי קרובה</th></tr></thead><tbody>';
+    o.failed.forEach(s=>{
+      let best=null;
+      ctx.guides.forEach(g=>{ const m=travelMinutes(g,s); if(m!=null&&(!best||m<best.m)) best={g,m}; });
+      const rsn=ctx.reason[s.id] || 'כל המנחות המתאימות תפוסות באותם ימים';
+      h+=`<tr><td>${esc(s.name)}</td><td>${dayPills(s.days)}</td><td>${rsn}</td>
+        <td>${best? esc(best.g.name)+' — '+best.m+" דק'" : '—'}</td></tr>`;
+    });
+    h+='</tbody></table></div>';
+  }
+
+  // פירוט לכל מנחה
+  h+='<div class="card"><h2>פירוט לפי מנחה</h2><table><thead><tr><th>מנחה</th><th>ימי עבודה</th><th>בתי ספר (יום · יציאה מהבית)</th><th>יציאה מוקדמת ביותר</th><th>נסיעה שבועית (הלוך-חזור)</th></tr></thead><tbody>';
+  const earlyLimit=hm2min(document.getElementById('setEarly').value)||405;
+  ctx.guides.forEach((g,gi)=>{
+    const items=o.assigned.filter(a=>a.gi===gi);
+    const earliest=items.length? Math.min(...items.map(a=>a.leaveHome)) : null;
+    const week=items.reduce((a,b)=>a+b.rush+b.back,0);
+    h+=`<tr><td>${esc(g.name)}</td><td>${o.load[gi].days.size}/${g.maxDays}</td>
+      <td>${items.map(a=>esc(a.school.name)+' ('+a.day+' · '+min2hm(a.leaveHome)+')').join(', ')||'—'}</td>
+      <td>${earliest==null?'—':(earliest<earlyLimit?'<span class="pill warn">'+min2hm(earliest)+'</span>':min2hm(earliest))}</td>
+      <td>${items.length? Math.round(week/60*10)/10+' שעות':'—'}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+
+/* ================= מנועי מפות בקוד פתוח ================= */
+function engineChanged(){
+  const e=document.getElementById('engine').value;
+  document.getElementById('engOsm').classList.toggle('hidden',e!=='osm');
+  document.getElementById('engSelf').classList.toggle('hidden',e!=='self');
+  document.getElementById('engGoogle').classList.toggle('hidden',e!=='google');
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function setStatus(txt,cls){ const st=document.getElementById('travelStatus');
+  st.textContent='מצב: '+txt; st.className='pill '+(cls||'info'); }
+
+/* --- גיאוקודינג --- */
+async function geocodePhoton(addr,base){
+  const url=(base||'https://photon.komoot.io')+'/api/?limit=1&lat=32.7&lon=35.1&q='+
+    encodeURIComponent(addr+', ישראל');
+  const r=await fetch(url); if(!r.ok) throw new Error('Photon '+r.status);
+  const j=await r.json();
+  if(!j.features||!j.features.length) return null;
+  const c=j.features[0].geometry.coordinates;
+  return {lat:c[1],lng:c[0],src:'photon',name:(j.features[0].properties.name||'')};
+}
+async function geocodeNominatim(addr,base){
+  const url=(base||'https://nominatim.openstreetmap.org')+
+    '/search?format=jsonv2&limit=1&countrycodes=il&q='+encodeURIComponent(addr);
+  const r=await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!r.ok) throw new Error('Nominatim '+r.status);
+  const j=await r.json(); if(!j.length) return null;
+  return {lat:+j[0].lat,lng:+j[0].lon,src:'nominatim',name:j[0].display_name.split(',')[0]};
+}
+async function geocodeAll(){
+  const eng=document.getElementById('engine').value;
+  const provider = eng==='self'
+      ? ((document.getElementById('selfGeo').value||'').includes('photon')?'photon':'nominatim')
+      : document.getElementById('geocoder').value;
+  const base = eng==='self' ? (document.getElementById('selfGeo').value||'').replace(/\/$/,'') : '';
+  const all=[...state.guides,...state.schools].filter(x=>x.address);
+  const todo=[]; const seen=new Set();
+  all.forEach(x=>{ const k='addr:'+normalize(x.address);
+    if(!state.coords[k] && !seen.has(k)){ seen.add(k); todo.push({k,addr:x.address,label:x.name}); } });
+  const fails=[];
+  for(let i=0;i<todo.length;i++){
+    setStatus(`מאתר כתובות ${i+1}/${todo.length} — ${todo[i].label}`,'warn');
+    try{
+      const g = provider==='photon' ? await geocodePhoton(todo[i].addr,base)
+                                    : await geocodeNominatim(todo[i].addr,base);
+      if(g) state.coords[todo[i].k]=g; else fails.push(todo[i].label);
+    }catch(e){ fails.push(todo[i].label+' ('+e.message+')'); }
+    if(i<todo.length-1) await sleep(provider==='nominatim'?1100:350);
+  }
+  return {count:todo.length-fails.length,fails};
+}
+
+/* --- מטריצת זמנים דרך OSRM --- */
+async function osrmMatrix(base){
+  const guides=state.guides.filter(g=>g.address), schools=state.schools.filter(s=>s.address);
+  const pts=[], srcIdx=[], dstIdx=[], missing=[];
+  guides.forEach(g=>{ const c=geoLookup(g.address);
+    if(c){ srcIdx.push(pts.length); pts.push({c,o:g,t:'g'}); } else { srcIdx.push(-1); missing.push(g.name); } });
+  schools.forEach(s=>{ const c=geoLookup(s.address);
+    if(c){ dstIdx.push(pts.length); pts.push({c,o:s,t:'s'}); } else { dstIdx.push(-1); missing.push(s.name); } });
+  if(pts.length<2) throw new Error('אין מספיק כתובות מזוהות');
+  const coordStr=pts.map(p=>p.c.lng.toFixed(6)+','+p.c.lat.toFixed(6)).join(';');
+  const sources=srcIdx.filter(i=>i>=0).join(';'), destinations=dstIdx.filter(i=>i>=0).join(';');
+  const url=(base||'https://router.project-osrm.org')+'/table/v1/driving/'+coordStr+
+    '?annotations=duration&sources='+sources+'&destinations='+destinations;
+  const r=await fetch(url); if(!r.ok) throw new Error('OSRM '+r.status);
+  const j=await r.json(); if(j.code!=='Ok') throw new Error('OSRM: '+j.code);
+  let n=0, ri=0;
+  guides.forEach((g,gi)=>{
+    if(srcIdx[gi]<0) return;
+    let ci=0;
+    schools.forEach((s,si)=>{
+      if(dstIdx[si]<0) return;
+      const d=j.durations[ri][ci];
+      if(d!=null){ state.travel[g.id+'|'+s.id]=Math.round(d/60); state.travelSrc[g.id+'|'+s.id]='OSRM'; n++; }
+      ci++;
+    });
+    ri++;
+  });
+  return {n,missing:[...new Set(missing)]};
+}
+
+async function computeTravel(){
+  const eng=document.getElementById('engine').value;
+  if(eng==='google') return fetchGoogleTravel();
+  const rep=document.getElementById('geoReport'); rep.innerHTML='';
+  try{
+    const g=await geocodeAll();
+    setStatus('מחשב מסלולים…','warn');
+    const base = eng==='self' ? (document.getElementById('selfOsrm').value||'').replace(/\/$/,'') : '';
+    const m=await osrmMatrix(base);
+    renderAll();
+    setStatus('זמני נהיגה אמיתיים מ‑OpenStreetMap ('+m.n+' זוגות)','ok');
+    let h='<div class="note">אותרו '+g.count+' כתובות · חושבו '+m.n+' זמני נסיעה.';
+    if(g.fails.length) h+='<br><b>לא אותרו:</b> '+g.fails.join(', ')+' — נשארת עליהן ההערכה המובנית, או מלא ידנית במטריצה.';
+    if(m.missing.length) h+='<br><b>ללא מיקום:</b> '+m.missing.join(', ');
+    h+='<br>נתוני מפה © OpenStreetMap contributors · ניתוב: OSRM</div>';
+    rep.innerHTML=h;
+    toast('זמני הנסיעה עודכנו');
+  }catch(e){
+    setStatus('שגיאה — '+e.message+' (ממשיך בהערכה מובנית)','bad');
+    rep.innerHTML='<div class="note">'+e.message+'<br>אם החסימה היא CORS או שהשרת עמוס — נסה שוב, החלף גיאוקודר, או הרם שרת OSRM מקומי.</div>';
+  }
+}
+
+/* ================= Google Maps ================= */
+/* יום העבודה הקרוב (א'–ה') בשעת היציאה מהבית — כדי לקבל זמן נהיגה עם תנועה אמיתית */
+function nextMorningDeparture(){
+  const arrive=hm2min(document.getElementById('setArrive').value)||495;
+  const dep=Math.max(0,arrive-45);
+  const d=new Date(); d.setSeconds(0,0);
+  d.setHours(Math.floor(dep/60),dep%60);
+  do{ d.setDate(d.getDate()+1); } while(d.getDay()===5||d.getDay()===6); // דילוג על שישי-שבת
+  return d;
+}
+let gmapsPromise=null;
+function loadGoogle(key){
+  if(gmapsPromise) return gmapsPromise;
+  gmapsPromise=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&language=iw&region=IL';
+    s.onload=()=>res(window.google); s.onerror=()=>rej(new Error('טעינת Google Maps נכשלה'));
+    document.head.appendChild(s);
+  });
+  return gmapsPromise;
+}
+async function fetchGoogleTravel(){
+  const key=document.getElementById('apiKey').value.trim();
+  if(!key){ toast('צריך להזין מפתח API'); return; }
+  const st=document.getElementById('travelStatus');
+  st.className='pill warn'; st.textContent='מצב: מתחבר לגוגל…';
+  try{
+    await loadGoogle(key);
+    const svc=new google.maps.DistanceMatrixService();
+    const guides=state.guides.filter(g=>g.address), schools=state.schools.filter(s=>s.address);
+    const org=guides.map(g=>g.address+', ישראל'), dst=schools.map(s=>s.address+', ישראל');
+    let done=0;
+    for(let i=0;i<org.length;i+=5){
+      for(let j=0;j<dst.length;j+=10){
+        const O=org.slice(i,i+5), D=dst.slice(j,j+10);
+        const res=await new Promise((ok,bad)=>svc.getDistanceMatrix(
+          {origins:O,destinations:D,travelMode:google.maps.TravelMode.DRIVING,
+           unitSystem:google.maps.UnitSystem.METRIC,
+           drivingOptions:{departureTime:nextMorningDeparture(),trafficModel:'bestguess'}},
+          (r,status)=> status==='OK'? ok(r) : bad(new Error(status))));
+        res.rows.forEach((row,ri)=> row.elements.forEach((el,ci)=>{
+          if(el.status==='OK'){
+            const k=guides[i+ri].id+'|'+schools[j+ci].id;
+            const withTraffic=el.duration_in_traffic||el.durationInTraffic;
+            state.travel[k]=Math.round((withTraffic?withTraffic.value:el.duration.value)/60);
+            state.travelSrc[k]=withTraffic?'Google+traffic':'Google';
+            done++;
+          }
+        }));
+        st.textContent='מצב: נטענו '+done+' זמנים…';
+      }
+    }
+    st.className='pill ok'; st.textContent='מצב: זמני נסיעה אמיתיים מגוגל ('+done+' זוגות)';
+    renderMatrix(); toast('זמני הנסיעה עודכנו מגוגל');
+  }catch(e){
+    st.className='pill bad'; st.textContent='מצב: שגיאה — '+e.message+' (ממשיך בהערכה מובנית)';
+    toast('לא הצלחתי להתחבר לגוגל: '+e.message,6000);
+  }
+}
+
+/* ================= קבצים ================= */
+function saveJSON(){
+  const data={guides:state.guides,schools:state.schools,manual:state.manual,travel:state.travel,travelSrc:state.travelSrc,coords:state.coords,
+    settings:{maxMin:num('setMaxMin',40),perDay:num('setPerDay',1),speed:num('setSpeed',65),
+      detour:num('setDetour',1.35),fixed:num('setFixed',5),
+      arrive:document.getElementById('setArrive').value,leave:document.getElementById('setLeave').value,
+      rush:num('setRush',1.3),rushBack:num('setRushBack',1.1),
+      early:document.getElementById('setEarly').value,
+      limitBasis:document.getElementById('setLimitBasis').value}};
+  const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download='שיבוץ-מנחות.json'; a.click();
+}
+function loadJSON(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const d=JSON.parse(r.result);
+    state.guides=d.guides||[]; state.schools=d.schools||[];
+    state.manual=d.manual||{}; state.travel=d.travel||{}; state.travelSrc=d.travelSrc||{}; state.coords=d.coords||{};
+    if(d.settings){ document.getElementById('setMaxMin').value=d.settings.maxMin;
+      document.getElementById('setPerDay').value=d.settings.perDay;
+      document.getElementById('setSpeed').value=d.settings.speed;
+      document.getElementById('setDetour').value=d.settings.detour;
+      document.getElementById('setFixed').value=d.settings.fixed;
+      const S=d.settings, put=(id,v)=>{ if(v!=null&&v!=='') document.getElementById(id).value=v; };
+      put('setArrive',S.arrive); put('setLeave',S.leave); put('setRush',S.rush);
+      put('setRushBack',S.rushBack); put('setEarly',S.early); put('setLimitBasis',S.limitBasis); }
+    renderAll(); toast('הקובץ נטען');
+  }catch(e){ toast('קובץ לא תקין'); } };
+  r.readAsText(f); inp.value='';
+}
+function importXlsx(inp){
+  const f=inp.files[0]; if(!f) return;
+  if(typeof XLSX==='undefined'){ toast('ייבוא אקסל דורש חיבור לאינטרנט – השתמש ב"הדבק מאקסל"',6000); inp.value=''; return; }
+  const r=new FileReader();
+  r.onload=()=>{
+    const wb=XLSX.read(new Uint8Array(r.result),{type:'array'});
+    let added=0;
+    wb.SheetNames.forEach(nm=>{
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,defval:''});
+      rows.forEach(row=>{
+        const c=row.map(x=>String(x).trim());
+        // מנחות: עמודות E,F,G בטבלת הדוגמה
+        if(c[4]&&c[5]&&c[6]&&!/שם המנחה/.test(c[4])){
+          state.guides.push({id:uid(),name:c[4],address:c[5],daysTxt:c[6],maxDays:parseDays(c[6]).length||5}); added++;}
+        // בתי ספר: עמודות A,B,C
+        if(c[0]&&c[1]&&c[2]&&!/שם בית הספר/.test(c[0])){
+          state.schools.push({id:uid(),name:c[0],address:c[1],daysTxt:c[2],visits:1,priority:1}); added++;}
+      });
+    });
+    renderAll(); toast(added? 'יובאו '+added+' שורות':'לא זוהו שורות – נסה "הדבק מאקסל"',5000);
+  };
+  r.readAsArrayBuffer(f); inp.value='';
+}
+let pasteMode='guides';
+function openPaste(mode){ pasteMode=mode;
+  document.getElementById('pasteHint').textContent = mode==='guides'
+    ? 'עמודות: שם המנחה | כתובת מגורים | ימי זמינות | (מקס ימים – אופציונלי)'
+    : 'עמודות: שם בית הספר | כתובת | ימי זמינות | (ביקורים בשבוע – אופציונלי)';
+  document.getElementById('pasteBox').classList.remove('hidden');
+  document.getElementById('pasteArea').focus();
+  document.querySelector('[data-tab="data"]').click();
+  document.getElementById('pasteBox').scrollIntoView({behavior:'smooth'});
+}
+function applyPaste(){
+  const txt=document.getElementById('pasteArea').value.trim(); if(!txt) return;
+  let n=0;
+  txt.split(/\r?\n/).forEach(line=>{
+    const c=line.split('\t').map(s=>s.trim());
+    if(!c[0]) return;
+    if(pasteMode==='guides') state.guides.push({id:uid(),name:c[0],address:c[1]||'',daysTxt:c[2]||'א-ה',maxDays:+c[3]||parseDays(c[2]||'א-ה').length||5});
+    else state.schools.push({id:uid(),name:c[0],address:c[1]||'',daysTxt:c[2]||'',visits:+c[3]||1,priority:1});
+    n++;
+  });
+  document.getElementById('pasteArea').value=''; document.getElementById('pasteBox').classList.add('hidden');
+  renderAll(); toast('נוספו '+n+' שורות');
+}
+function exportXlsx(){
+  if(typeof XLSX==='undefined'){ toast('ייצוא לאקסל דורש חיבור לאינטרנט – אפשר "הדפס / שמור PDF"',6000); return; }
+  if(!state.options.length){ toast('קודם צור אפשרויות שיבוץ'); return; }
+  const wb=XLSX.utils.book_new();
+  state.options.forEach((o,i)=>{
+    const aoa=[['מנחה',...DAYS.map(d=>'יום '+d),'סה"כ']];
+    state.ctx.guides.forEach((g,gi)=>{
+      const row=[g.name];
+      DAYS.forEach(d=>{ const it=o.assigned.filter(a=>a.gi===gi&&a.day===d);
+        row.push(it.map(a=>a.school.name+' | יציאה '+min2hm(a.leaveHome)+' | '+a.rush+" דק' | חזרה "+min2hm(a.home))
+          .join(' + ') || (g.days.includes(d)?'':'—')); });
+      row.push(o.load[gi].schools.length); aoa.push(row);
+    });
+    aoa.push([]); aoa.push(['בתי ספר שלא שובצו']);
+    o.failed.forEach(s=>aoa.push([s.name,state.ctx.reason[s.id]||'תפוס בכל הימים האפשריים']));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'אפשרות '+(i+1));
+  });
+  XLSX.writeFile(wb,'אפשרויות-שיבוץ.xlsx');
+}
+function clearAll(){ if(!confirm('למחוק את כל הנתונים?')) return;
+  state.guides=[];state.schools=[];state.travel={};state.manual={};state.options=[];
+  renderAll(); document.getElementById('results').innerHTML=''; }
+
+/* ================= דוגמה ================= */
+function loadDemo(){
+  state.guides=[]; state.schools=[]; state.options=[];
+  [['איה אבו ראס','כפר עילוט','א-ה',5],
+   ['אלומה','קיבוץ מזרע','א-ה',5],
+   ['דיקלה','מצפה אביב','א,ב,ד',3],
+   ['סופי','ניר עציון','א,ב,ה',3],
+   ['קרן','העליה 38 נהריה','א,ב,ד',3]]
+   .forEach(r=>state.guides.push({id:uid(),name:r[0],address:r[1],daysTxt:r[2],maxDays:r[3]}));
+  [['אבן סינא כפר קרע','כפר קרע','א, ב'],
+   ['חט"ב אלבטוף עראבה','עראבה','ה'],
+   ['אלראזי נצרת',"רח' 1015 נצרת",'ה'],
+   ['גבעת אלונים','אנפה 2 קרית אתא','א'],
+   ['גורדון ק. אתא','ברנר 2 קרית אתא','ב'],
+   ['רמבם נהריה','אביר יעקב 1 נהריה','א'],
+   ['מעיינות כברי','קיבוץ כברי','א,ב,ג'],
+   ['הר גילון','גילון, משגב','ד'],
+   ['הדרור נהריה','שכונת יצחק שמיר נהריה','ג'],
+   ['יערת העמק','קרית חינוך 5, מגדל העמק','א,ד'],
+   ['ארזים רמת ישי','הארז 48 רמת ישי','ב'],
+   ['גוונים עין המפרץ','קיבוץ עין המפרץ','א,ד']]
+   .forEach(r=>state.schools.push({id:uid(),name:r[0],address:r[1],daysTxt:r[2],visits:1,priority:1}));
+  renderAll(); toast('נטענו נתוני הדוגמה מהקובץ שלך');
+}
+
+/* ================= איתחול ================= */
+function renderAll(){ renderGuides(); renderSchools(); renderMatrix(); }
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.toggle('active',x===b));
+  ['data','settings','run','help'].forEach(t=>
+    document.getElementById('tab-'+t).classList.toggle('hidden',t!==b.dataset.tab));
+  if(b.dataset.tab==='settings') renderMatrix();
+});
+['setMaxMin','setSpeed','setDetour','setFixed','setRush','setRushBack','setLimitBasis']
+  .forEach(id=>document.getElementById(id).addEventListener('change',renderMatrix));
+['setArrive','setLeave'].forEach(id=>
+  document.getElementById(id).addEventListener('change',renderSchools));
+engineChanged();
+loadDemo();
+</script>
+</body>
+</html>
