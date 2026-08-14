@@ -224,10 +224,25 @@ textarea.paste{border:1px solid var(--line);background:#fff;min-height:110px;fon
     <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
     <div class="field" style="max-width:560px"><label>מנוע מפות</label>
       <select id="engine" onchange="engineChanged()">
-        <option value="osm" selected>OpenStreetMap — Photon + OSRM (קוד פתוח, חינם, בלי מפתח)</option>
+        <option value="tomtom" selected>TomTom — כולל פקקים אמיתיים (חינם, 2,500 בחודש) ★ מומלץ</option>
+        <option value="osm">OpenStreetMap — Photon + OSRM (קוד פתוח, בלי מפתח, בלי פקקים)</option>
         <option value="self">שרת עצמי שלך (OSRM / Nominatim בדוקר)</option>
-        <option value="google">Google Maps (דורש מפתח בתשלום)</option>
+        <option value="google">Google Maps (דורש כרטיס אשראי)</option>
       </select></div>
+
+    <div id="engTomtom" style="margin-top:12px">
+      <div class="field" style="max-width:520px"><label>מפתח TomTom API</label>
+        <input type="password" id="ttKey" placeholder="הדבק כאן את המפתח" style="border:1px solid var(--line);background:#fff"></div>
+      <div class="note" style="margin-top:10px">
+        <b>למה TomTom:</b> היחיד שנותן בחינם זמן נהיגה עם פקקים אמיתיים לשעת יציאה עתידית, מכסה את ישראל במלואה,
+        ומותר לקרוא לו ישירות מהדפדפן ולשמור את התוצאות.
+        המכסה החינמית היא 2,500 תאים בחודש — מטריצה של 5 מנחות ו‑15 בתי ספר היא 75 תאים, כלומר 33 חישובים מלאים בחודש.
+        <br><b>איך משיגים:</b> developer.tomtom.com ← הרשמה ← Dashboard ← My Keys. בלי כרטיס אשראי.
+        בהגדרות המפתח מומלץ להוסיף את הדומיין של האתר לרשימת CORS.
+        <br>כשמשתמשים ב‑TomTom, מקדם עומס הבוקר <b>לא</b> מופעל — הפקק כבר בתוך המספר.
+      </div>
+    </div>
+
 
     <div id="engOsm" style="margin-top:12px">
       <div class="row">
@@ -496,7 +511,8 @@ function rushMinutes(g,s){
   const base=travelMinutes(g,s); if(base==null) return null;
   const k=travelKey(g,s);
   if(state.manual[k]!=null) return base;                 // מספר ידני = כבר אמיתי
-  if(state.travelSrc[k]==='Google+traffic') return base; // כבר כולל תנועה
+  const _src=state.travelSrc[k];
+  if(_src==='Google+traffic'||_src==='TomTom+traffic') return base; // כבר כולל תנועה
   return Math.round(base*schoolRush(s));
 }
 /* נסיעה בין שני בתי ספר (לשיבוץ של 2 ביקורים באותו יום) */
@@ -958,9 +974,11 @@ function renderOption(o,idx){
 /* ================= מנועי מפות בקוד פתוח ================= */
 function engineChanged(){
   const e=document.getElementById('engine').value;
+  document.getElementById('engTomtom').classList.toggle('hidden',e!=='tomtom');
   document.getElementById('engOsm').classList.toggle('hidden',e!=='osm');
   document.getElementById('engSelf').classList.toggle('hidden',e!=='self');
   document.getElementById('engGoogle').classList.toggle('hidden',e!=='google');
+  renderMatrix();
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function setStatus(txt,cls){ const st=document.getElementById('travelStatus');
@@ -1036,8 +1054,95 @@ async function osrmMatrix(base){
   return {n,missing:[...new Set(missing)]};
 }
 
+/* --- TomTom: גיאוקודינג + מטריצה עם פקקים --- */
+async function geocodeTomTom(addr,key){
+  const url='https://api.tomtom.com/search/2/geocode/'+encodeURIComponent(addr)+
+    '.json?key='+encodeURIComponent(key)+'&countrySet=IL&limit=1&language=he-IL';
+  const r=await fetch(url);
+  if(!r.ok) throw new Error('TomTom Search '+r.status+(r.status===403?' — מפתח לא תקין או דומיין חסום':''));
+  const j=await r.json();
+  if(!j.results||!j.results.length) return null;
+  const p=j.results[0].position;
+  return {lat:p.lat,lng:p.lon,src:'tomtom',name:(j.results[0].address||{}).freeformAddress||''};
+}
+function isoLocal(d){
+  const p=n=>String(n).padStart(2,'0');
+  const off=-d.getTimezoneOffset(), sg=off>=0?'+':'-', ab=Math.abs(off);
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+
+    p(d.getHours())+':'+p(d.getMinutes())+':00'+sg+p(Math.floor(ab/60))+':'+p(ab%60);
+}
+async function tomtomMatrix(key){
+  const guides=[], schools=[];
+  state.guides.forEach(g=>{ const c=geoLookup(g.address); if(c) guides.push({o:g,c}); });
+  state.schools.forEach(s=>{ const c=geoLookup(s.address); if(c) schools.push({o:s,c}); });
+  if(!guides.length||!schools.length) throw new Error('אין כתובות מזוהות');
+  const departAt=isoLocal(nextMorningDeparture());
+  let n=0;
+  // המטריצה הסינכרונית מוגבלת ל־100 תאים לבקשה
+  const maxDst=Math.max(1,Math.floor(100/Math.min(guides.length,10)));
+  for(let i=0;i<guides.length;i+=10){
+    const G=guides.slice(i,i+10);
+    for(let j=0;j<schools.length;j+=maxDst){
+      const S=schools.slice(j,j+maxDst);
+      const body={
+        origins:G.map(x=>({point:{latitude:x.c.lat,longitude:x.c.lng}})),
+        destinations:S.map(x=>({point:{latitude:x.c.lat,longitude:x.c.lng}})),
+        options:{departAt:departAt,traffic:'historical',travelMode:'car'}
+      };
+      const r=await fetch('https://api.tomtom.com/routing/matrix/2?key='+encodeURIComponent(key),
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!r.ok){ const t=await r.text();
+        throw new Error('TomTom Matrix '+r.status+' — '+t.slice(0,120)); }
+      const j2=await r.json();
+      (j2.data||[]).forEach(cell=>{
+        const sum=cell.routeSummary;
+        if(!sum) return;
+        const g=G[cell.originIndex], s=S[cell.destinationIndex];
+        const k=g.o.id+'|'+s.o.id;
+        state.travel[k]=Math.round(sum.travelTimeInSeconds/60);
+        state.travelSrc[k]='TomTom+traffic';
+        n++;
+      });
+      setStatus('מחשב מסלולים… '+n,'warn');
+    }
+  }
+  return {n,departAt};
+}
+async function computeTomTom(){
+  const key=document.getElementById('ttKey').value.trim();
+  if(!key){ toast('צריך להזין מפתח TomTom'); return; }
+  const rep=document.getElementById('geoReport'); rep.innerHTML='';
+  const fails=[];
+  try{
+    const all=[...state.guides,...state.schools].filter(x=>x.address);
+    const todo=[]; const seen=new Set();
+    all.forEach(x=>{ const k='addr:'+normalize(x.address);
+      if(!state.coords[k] && !seen.has(k)){ seen.add(k); todo.push({k,addr:x.address,label:x.name}); } });
+    for(let i=0;i<todo.length;i++){
+      setStatus(`מאתר כתובות ${i+1}/${todo.length} — ${todo[i].label}`,'warn');
+      try{ const g=await geocodeTomTom(todo[i].addr,key);
+        if(g) state.coords[todo[i].k]=g; else fails.push(todo[i].label);
+      }catch(e){ fails.push(todo[i].label+' ('+e.message+')'); }
+      await sleep(220);
+    }
+    const m=await tomtomMatrix(key);
+    renderAll();
+    setStatus('זמני נהיגה עם פקקים מ‑TomTom ('+m.n+' זוגות)','ok');
+    let h='<div class="note">חושבו '+m.n+' זמני נסיעה עם תנועה חזויה ליציאה ב‑'+
+      m.departAt.slice(11,16)+' ('+m.departAt.slice(0,10)+', יום עבודה).';
+    if(fails.length) h+='<br><b>כתובות שלא אותרו:</b> '+fails.join(', ');
+    h+='<br>מקדם עומס הבוקר לא מופעל על המספרים האלה — הפקק כבר כלול בהם.<br>נתוני תנועה © TomTom</div>';
+    rep.innerHTML=h; toast('זמני הנסיעה עודכנו מ‑TomTom');
+  }catch(e){
+    setStatus('שגיאה — '+e.message,'bad');
+    rep.innerHTML='<div class="note"><b>'+e.message+'</b><br>'+
+      'בדוק שהמפתח נכון, שה‑APIs "Routing" ו‑"Search" מופעלים עליו, ושהדומיין של האתר מופיע ברשימת ה‑CORS בהגדרות המפתח.</div>';
+  }
+}
+
 async function computeTravel(){
   const eng=document.getElementById('engine').value;
+  if(eng==='tomtom') return computeTomTom();
   if(eng==='google') return fetchGoogleTravel();
   const rep=document.getElementById('geoReport'); rep.innerHTML='';
   try{
