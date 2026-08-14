@@ -82,6 +82,17 @@ details summary{cursor:pointer;font-weight:600;font-size:14px;margin-bottom:8px}
 .legend i{display:inline-block;width:13px;height:13px;border-radius:3px;margin-left:5px;vertical-align:-2px}
 textarea.paste{border:1px solid var(--line);background:#fff;min-height:110px;font-size:13px;
   font-family:Consolas,monospace;direction:ltr;text-align:left}
+@media (max-width:840px){
+  .wrap{padding:10px 8px 40px}
+  .card{padding:12px;border-radius:14px;overflow-x:auto}
+  nav.tabs{position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;margin:6px 0}
+  header{padding:14px 16px 12px}
+  header h1{font-size:18px}
+  .kpi div{min-width:96px;padding:7px 10px}
+  .kpi b{font-size:17px}
+  table{font-size:13px}
+  .sched td.slot{min-width:104px}
+}
 @media print{
   header,nav.tabs,.noprint{display:none!important}
   .card{box-shadow:none;break-inside:avoid}
@@ -324,9 +335,11 @@ textarea.paste{border:1px solid var(--line);background:#fff;min-height:110px;fon
       <button class="btn" onclick="runSolver()">צור אפשרויות שיבוץ</button>
       <button class="btn ghost sm" onclick="window.print()">הדפס / שמור PDF</button>
       <button class="btn grey sm" onclick="exportXlsx()">ייצוא לאקסל</button>
+      <button class="btn grey sm" onclick="showMessages()">הודעות למנחות</button>
       <span id="runInfo" style="color:var(--muted);font-size:13px"></span>
     </div>
   </div>
+  <div id="guideMsgs" class="hidden"></div>
   <div id="results"></div>
 </section>
 
@@ -836,8 +849,9 @@ function solveOnce(ctx,seed){
     for(let i=failed.length-1;i>=0;i--){
       const s=failed[i]; let done=false;
       for(const o of feas[s.id]){
-        const blocker=assigned.find(a=>a.gi===o.gi && a.day===o.day);
-        if(!blocker) continue;
+        const blockers=assigned.filter(a=>a.gi===o.gi && a.day===o.day);
+        if(!blockers.length) continue;
+        const blocker=blockers[Math.floor(rnd()*blockers.length)];
         unplace(blocker);
         if(canPlace(o.gi,o.day,s)){
           // האם החוסם יכול לעבור למקום אחר?
@@ -877,6 +891,7 @@ function runSolver(){
   found.sort((a,b)=> (b.assigned.length-a.assigned.length)
      || (a.totalTravel-b.totalTravel) || (a.imbalance-b.imbalance));
   state.options=found.slice(0,want); state.ctx=ctx;
+  document.getElementById('guideMsgs').classList.add('hidden');
   renderResults();
   document.getElementById('runInfo').textContent =
     `נבדקו ${seen.size} פתרונות שונים · מוצגות ${state.options.length} אפשרויות`;
@@ -897,6 +912,7 @@ function renderResults(){
 function showOpt(i){
   document.querySelectorAll('.opt-body').forEach((e,j)=>e.classList.toggle('hidden',j!==i));
   document.querySelectorAll('.opt-tabs button').forEach((b,j)=>b.classList.toggle('active',j===i));
+  document.getElementById('guideMsgs').classList.add('hidden');
 }
 function renderOption(o,idx){
   const ctx=state.ctx, maxMin=ctx.maxMin;
@@ -1232,35 +1248,63 @@ async function fetchGoogleTravel(){
 }
 
 /* ================= קבצים ================= */
-function saveJSON(){
-  const data={guides:state.guides,schools:state.schools,manual:state.manual,travel:state.travel,travelSrc:state.travelSrc,coords:state.coords,
+function collectData(){
+  return {guides:state.guides,schools:state.schools,manual:state.manual,travel:state.travel,travelSrc:state.travelSrc,coords:state.coords,
     settings:{maxMin:num('setMaxMin',40),perDay:num('setPerDay',1),gap:num('setGap',15),speed:num('setSpeed',65),
       detour:num('setDetour',1.35),fixed:num('setFixed',5),
       arrive:document.getElementById('setArrive').value,leave:document.getElementById('setLeave').value,
       rush:num('setRush',1.3),rushBack:num('setRushBack',1.1),
       early:document.getElementById('setEarly').value,
-      limitBasis:document.getElementById('setLimitBasis').value}};
-  const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      limitBasis:document.getElementById('setLimitBasis').value,
+      engine:document.getElementById('engine').value},
+    savedAt:new Date().toISOString()};
+}
+function applyData(d){
+  state.guides=d.guides||[]; state.schools=d.schools||[];
+  state.manual=d.manual||{}; state.travel=d.travel||{}; state.travelSrc=d.travelSrc||{}; state.coords=d.coords||{};
+  if(d.settings){ const S=d.settings, put=(id,v)=>{ if(v!=null&&v!=='') document.getElementById(id).value=v; };
+    put('setMaxMin',S.maxMin); put('setPerDay',S.perDay); put('setSpeed',S.speed);
+    put('setDetour',S.detour); put('setFixed',S.fixed); put('setGap',S.gap);
+    put('setArrive',S.arrive); put('setLeave',S.leave); put('setRush',S.rush);
+    put('setRushBack',S.rushBack); put('setEarly',S.early); put('setLimitBasis',S.limitBasis);
+    if(S.engine){ put('engine',S.engine); engineChanged(); } }
+  renderAll();
+}
+function saveJSON(){
+  const b=new Blob([JSON.stringify(collectData(),null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download='שיבוץ-מנחות.json'; a.click();
+  toast('נשמר קובץ. שים לב: הכלי גם שומר אוטומטית בדפדפן הזה');
+}
+
+/* ---------- שמירה אוטומטית בדפדפן ---------- */
+const AUTOSAVE_KEY='gefen-shibuts-v1';
+function storageOK(){ try{ const t='__t'; localStorage.setItem(t,'1'); localStorage.removeItem(t); return true; }catch(e){ return false; } }
+const HAS_STORAGE=storageOK();
+function autoSave(){
+  if(!HAS_STORAGE) return;
+  if(!state.guides.length && !state.schools.length) return;
+  try{ localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(collectData())); }catch(e){}
+}
+function queueSave(){ clearTimeout(window._as); window._as=setTimeout(autoSave,800); }
+function tryRestore(){
+  if(!HAS_STORAGE) return false;
+  try{
+    const raw=localStorage.getItem(AUTOSAVE_KEY); if(!raw) return false;
+    const d=JSON.parse(raw);
+    if(!(d.guides||[]).length && !(d.schools||[]).length) return false;
+    applyData(d);
+    const when=d.savedAt? new Date(d.savedAt) : null;
+    const ts=when? ' ('+when.toLocaleDateString('he-IL')+' '+when.toTimeString().slice(0,5)+')' : '';
+    toast('שוחזרו הנתונים מהפעם הקודמת'+ts+'. ל"נתוני דוגמה" — כפתור בלשונית נתונים',6000);
+    return true;
+  }catch(e){ return false; }
 }
 function loadJSON(inp){
   const f=inp.files[0]; if(!f) return;
   const r=new FileReader();
   r.onload=()=>{ try{
-    const d=JSON.parse(r.result);
-    state.guides=d.guides||[]; state.schools=d.schools||[];
-    state.manual=d.manual||{}; state.travel=d.travel||{}; state.travelSrc=d.travelSrc||{}; state.coords=d.coords||{};
-    if(d.settings){ document.getElementById('setMaxMin').value=d.settings.maxMin;
-      document.getElementById('setPerDay').value=d.settings.perDay;
-      document.getElementById('setSpeed').value=d.settings.speed;
-      document.getElementById('setDetour').value=d.settings.detour;
-      document.getElementById('setFixed').value=d.settings.fixed;
-      const S=d.settings, put=(id,v)=>{ if(v!=null&&v!=='') document.getElementById(id).value=v; };
-      put('setGap',S.gap);
-      put('setArrive',S.arrive); put('setLeave',S.leave); put('setRush',S.rush);
-      put('setRushBack',S.rushBack); put('setEarly',S.early); put('setLimitBasis',S.limitBasis); }
-    renderAll(); toast('הקובץ נטען');
+    applyData(JSON.parse(r.result)); autoSave(); toast('הקובץ נטען');
   }catch(e){ toast('קובץ לא תקין'); } };
   r.readAsText(f); inp.value='';
 }
@@ -1312,6 +1356,55 @@ function applyPaste(){
   document.getElementById('pasteArea').value=''; document.getElementById('pasteBox').classList.add('hidden');
   renderAll(); toast('נוספו '+n+' שורות');
 }
+function currentOptIndex(){
+  const bodies=[...document.querySelectorAll('.opt-body')];
+  const i=bodies.findIndex(b=>!b.classList.contains('hidden'));
+  return i<0?0:i;
+}
+function guideMessage(g,gi,o){
+  const lines=['שלום '+g.name+', אלה השיבוצים שלך לשבוע:',''];
+  let has=false;
+  DAYS.forEach(d=>{
+    const items=o.assigned.filter(a=>a.gi===gi&&a.day===d).sort((x,y)=>(x.order||0)-(y.order||0));
+    if(!items.length) return; has=true;
+    items.forEach(a=>{
+      const t=a.isFirst? 'יציאה מהבית '+min2hm(a.leaveHome) : 'המשך ישיר מבית הספר הקודם';
+      lines.push('יום '+d+"' — "+a.school.name+' ('+(a.school.address||'')+')');
+      lines.push('   '+min2hm(a.arrive)+'–'+min2hm(a.endVisit)+' · '+t+
+        (a.isLast?' · חזרה הביתה בערך '+min2hm(a.home):''));
+    });
+  });
+  if(!has) return null;
+  lines.push(''); lines.push('נסיעה טובה!');
+  return lines.join('\n');
+}
+function showMessages(){
+  const box=document.getElementById('guideMsgs');
+  if(!state.options.length){ toast('קודם צור אפשרויות שיבוץ'); return; }
+  if(!box.classList.contains('hidden')){ box.classList.add('hidden'); return; }
+  const o=state.options[currentOptIndex()], ctx=state.ctx;
+  let h='<div class="card"><h2>הודעות מוכנות לשליחה למנחות</h2><div class="sub">לפי האפשרות המוצגת כרגע. לחיצה על "העתק" — ואפשר להדביק בוואטסאפ.</div>';
+  let n=0;
+  ctx.guides.forEach((g,gi)=>{
+    const msg=guideMessage(g,gi,o); if(!msg) return; n++;
+    const id='msg'+gi;
+    h+=`<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px"><b>${esc(g.name)}</b>
+        <button class="btn sm ghost" onclick="copyMsg('${id}')">העתק</button></div>
+      <pre id="${id}" style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:13.5px;line-height:1.7;color:#3d2a7a">${esc(msg)}</pre></div>`;
+  });
+  if(!n) h+='<div class="note">אין שיבוצים באפשרות הנוכחית</div>';
+  h+='</div>';
+  box.innerHTML=h; box.classList.remove('hidden');
+  box.scrollIntoView({behavior:'smooth'});
+}
+function copyMsg(id){
+  const t=document.getElementById(id).innerText;
+  (navigator.clipboard? navigator.clipboard.writeText(t) : Promise.reject())
+    .then(()=>toast('הועתק — אפשר להדביק בוואטסאפ'))
+    .catch(()=>{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); ta.remove(); toast('הועתק'); });
+}
 function exportXlsx(){
   if(typeof XLSX==='undefined'){ toast('ייצוא לאקסל דורש חיבור לאינטרנט – אפשר "הדפס / שמור PDF"',6000); return; }
   if(!state.options.length){ toast('קודם צור אפשרויות שיבוץ'); return; }
@@ -1335,8 +1428,9 @@ function exportXlsx(){
   });
   XLSX.writeFile(wb,'אפשרויות-שיבוץ.xlsx');
 }
-function clearAll(){ if(!confirm('למחוק את כל הנתונים?')) return;
-  state.guides=[];state.schools=[];state.travel={};state.manual={};state.options=[];
+function clearAll(){ if(!confirm('למחוק את כל הנתונים? (כולל השמירה האוטומטית בדפדפן)')) return;
+  state.guides=[];state.schools=[];state.travel={};state.travelSrc={};state.manual={};state.coords={};state.options=[];
+  if(HAS_STORAGE){ try{ localStorage.removeItem(AUTOSAVE_KEY); }catch(e){} }
   renderAll(); document.getElementById('results').innerHTML=''; }
 
 /* ================= דוגמה ================= */
@@ -1366,7 +1460,7 @@ function loadDemo(){
    ['גוונים עין המפרץ','קיבוץ עין המפרץ','א,ד',1,'','','any','']]
    .forEach(r=>state.schools.push({id:uid(),name:r[0],address:r[1],daysTxt:r[2],visits:r[3],priority:1,
      need:r[4],hours:r[5],guideMode:r[6],pinGuide:G(r[7]),pinDay:'',rush:''}));
-  renderAll(); toast('נטענו נתוני דוגמה שמדגימים גם את האילוצים החדשים',5000);
+  renderAll(); queueSave(); toast('נטענו נתוני דוגמה שמדגימים גם את האילוצים החדשים',5000);
 }
 
 /* ================= איתחול ================= */
@@ -1392,7 +1486,13 @@ document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
 ['setArrive','setLeave','setPerDay','setRush'].forEach(id=>
   document.getElementById(id).addEventListener('change',()=>{ renderGuides(); renderSchools(); }));
 engineChanged();
-loadDemo();
+if(!tryRestore()) loadDemo();
+/* שמירה אוטומטית: כל שינוי בטפסים, אחרי חישוב, וביציאה מהדף */
+document.addEventListener('input',queueSave,true);
+document.addEventListener('change',queueSave,true);
+window.addEventListener('beforeunload',autoSave);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') autoSave(); });
+setInterval(autoSave,20000);
 </script>
 </body>
 </html>
